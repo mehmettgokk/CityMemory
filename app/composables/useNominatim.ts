@@ -7,6 +7,8 @@ export const useNominatim = () => {
     const isLoading = ref(false)
     const error = ref<string | null>(null)
 
+
+    // API'den sonucu bizim istediğimize göre dönüştürme
     const transformToPlace = (item: any): Place => {
         return {
             id: item.place_id.toString(),
@@ -18,6 +20,7 @@ export const useNominatim = () => {
         }
     }
     
+    //  arama işlemi
     const search = async (query: string) => {
         if(!query.trim()){
             searchResults.value = []
