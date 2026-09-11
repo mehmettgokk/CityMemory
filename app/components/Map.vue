@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted, watch, ref } from 'vue'
-import type { Place } from '~/types/place'
+import type { Place } from '../types/place'
 
 const props = defineProps<{
   center?: { lat: number, lng: number },

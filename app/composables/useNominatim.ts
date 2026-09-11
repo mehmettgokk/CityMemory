@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { Place } from '~/types/place'
+import type { Place } from '../types/place'
 
 export const useNominatim = () => {
 

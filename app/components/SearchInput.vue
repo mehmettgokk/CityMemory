@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
-import type { Place } from '~/types/place'
+import type { Place } from '../types/place'
 
 const emit = defineEmits(['select'])
 const { search, searchResults, isLoading, error } = useNominatim()
