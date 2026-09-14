@@ -2,13 +2,16 @@ import { defineStore } from 'pinia'
 import { ref, onMounted, watch } from 'vue'
 import type { SavedPlace, Place } from '~/types/place'
 
+const STORAGE_KEY = 'sehir-hafizasi-places'
+const LEGACY_KEY = 'sehir-hafizasi'
+
 export const usePlacesStore = defineStore('places',() => {
 
     const savedPlaces = ref<SavedPlace[]>([])
     const isInitialized = ref(false)
 
     onMounted(() =>{
-        const data = localStorage.getItem('sehir-hafizasi-places')
+        const data = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY)
         if(data){
             try{
                 savedPlaces.value = JSON.parse(data)
@@ -22,7 +25,7 @@ export const usePlacesStore = defineStore('places',() => {
     // watch: savedPlaces dizisini izlemek için
     watch(savedPlaces, (newVal) => {
         if (isInitialized.value) {
-            localStorage.setItem('sehir-hafizasi', JSON.stringify(newVal))
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(newVal))
         }
     }, { deep: true })
 

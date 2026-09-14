@@ -35,7 +35,7 @@ export const useNominatim = () => {
                 params: {
                     q: query,
                     format: 'json',
-                    addressdetais: 1,
+                    addressdetails: 1,
                     limit: 10
                 },
                 headers: {
