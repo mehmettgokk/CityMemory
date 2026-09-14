@@ -1,94 +1,148 @@
 <template>
-  <UContainer class="py-8">
-    <UButton to="/saved" icon="i-heroicons-arrow-left" color="gray" variant="ghost" class="mb-6">Listeye Dön</UButton>
+  <UContainer class="py-8 lg:py-10">
+    <NuxtLink to="/saved" class="inline-flex items-center gap-1.5 text-sm text-muted hover:text-highlighted transition-colors mb-6">
+      <UIcon name="i-heroicons-arrow-left" class="w-4 h-4" />
+      Arşivime dön
+    </NuxtLink>
 
-    <div v-if="!place" class="text-center py-20 bg-white dark:bg-gray-900 rounded-xl shadow-sm border dark:border-gray-800">
-      <UIcon name="i-heroicons-exclamation-circle" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
-      <h3 class="text-xl font-bold mb-2">Mekan Bulunamadı</h3>
-      <p class="text-gray-500 mb-6">Bu mekan silinmiş veya hiç kaydedilmemiş olabilir.</p>
-      <UButton to="/saved" color="primary">Listeye Dön</UButton>
+    <div v-if="!store.isInitialized" class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div class="lg:col-span-3 paper h-96 animate-pulse" />
+      <div class="lg:col-span-2 paper h-96 animate-pulse" />
     </div>
 
-    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="space-y-6">
+    <div v-else-if="!place" class="paper max-w-lg mx-auto text-center px-8 py-14">
+      <span class="w-16 h-16 rounded-2xl bg-warning/10 text-warning flex items-center justify-center mx-auto mb-5">
+        <UIcon name="i-heroicons-question-mark-circle" class="w-8 h-8" />
+      </span>
+      <h3 class="font-display text-2xl font-semibold text-highlighted">Mekan bulunamadı</h3>
+      <p class="text-sm text-muted mt-2 mb-6">Bu mekan arşivinden silinmiş ya da hiç kaydedilmemiş olabilir.</p>
+      <UButton to="/saved" color="primary" class="rounded-xl">Arşivime dön</UButton>
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+      <!-- Sol: API'den gelen mekan bilgisi -->
+      <section class="lg:col-span-3 space-y-6">
         <div>
-          <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-3">{{ place.name }}</h1>
-          <div class="flex flex-wrap gap-2 mb-4">
-            <UBadge color="gray" variant="soft" class="uppercase tracking-wide text-xs">{{ place.category }}</UBadge>
-            <UBadge :color="place.status === 'visited' ? 'green' : 'orange'" variant="subtle" class="tracking-wide text-xs">
-              {{ place.status === 'visited' ? 'Ziyaret Edildi' : 'Planlandı' }}
+          <div class="flex flex-wrap items-center gap-2 mb-3">
+            <span class="text-[11px] uppercase tracking-wider font-semibold text-primary bg-primary/10 px-2 py-1 rounded-md">
+              {{ formatCategory(place.category) }}
+            </span>
+            <UBadge
+              :color="visited ? 'success' : 'warning'"
+              variant="subtle"
+              size="sm"
+              :icon="visited ? 'i-heroicons-check-circle' : 'i-heroicons-clock'"
+            >
+              {{ visited ? 'Ziyaret edildi' : 'Planlandı' }}
             </UBadge>
           </div>
-          <p class="text-gray-600 dark:text-gray-400 flex items-start gap-2">
-            <UIcon name="i-heroicons-map-pin" class="w-5 h-5 shrink-0 mt-0.5 text-primary" />
-            {{ place.address }}
+
+          <h1 class="font-display text-4xl sm:text-5xl font-semibold text-highlighted leading-[1.05]">
+            {{ place.name }}
+          </h1>
+
+          <p class="text-toned mt-4 flex items-start gap-2 text-sm leading-relaxed">
+            <UIcon name="i-heroicons-map-pin" class="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+            {{ place.address || 'Adres bilgisi bulunmuyor.' }}
           </p>
         </div>
 
-        <div class="h-64 rounded-xl overflow-hidden border dark:border-gray-800 shadow-sm relative z-0">
+        <div class="paper overflow-hidden h-80 relative">
           <ClientOnly>
-            <Map :center="{lat: place.latitude, lng: place.longitude}" :places="[place]" />
+            <Map :center="{ lat: place.latitude, lng: place.longitude }" :places="[place]" :selected-id="place.id" :zoom="15" />
           </ClientOnly>
         </div>
-      </div>
 
-      <UCard class="h-max shadow-lg ring-1 ring-gray-200 dark:ring-gray-800">
-        <template #header>
-          <div class="flex items-center gap-2">
-            <UIcon name="i-heroicons-book-open" class="w-6 h-6 text-primary" />
-            <h2 class="text-xl font-bold">Kişisel Hafıza</h2>
+        <dl class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+          <div class="paper px-4 py-3">
+            <dt class="text-[11px] text-muted">Arşive eklendi</dt>
+            <dd class="font-medium text-highlighted mt-0.5">{{ formatDate(place.savedAt) }}</dd>
           </div>
-        </template>
-
-        <div class="space-y-8">
-          <div>
-            <label class="block text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Ziyaret Durumu</label>
-            <UButton 
-              v-if="place.status === 'planned'" 
-              @click="markVisited" 
-              color="green" 
-              icon="i-heroicons-check-circle"
-              block
-              size="lg"
-            >
-              Ziyaret Edildi Olarak İşaretle
-            </UButton>
-            <div v-else class="p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg flex items-center gap-3 border border-green-200 dark:border-green-800/30">
-              <UIcon name="i-heroicons-check-badge" class="w-6 h-6" />
-              <div>
-                <p class="font-bold">Ziyaret Edildi</p>
-                <p class="text-sm opacity-90" v-if="place.visitedAt">{{ new Date(place.visitedAt).toLocaleDateString('tr-TR') }} tarihinde</p>
-              </div>
-            </div>
+          <div class="paper px-4 py-3">
+            <dt class="text-[11px] text-muted">Ziyaret</dt>
+            <dd class="font-medium text-highlighted mt-0.5">{{ place.visitedAt ? formatDate(place.visitedAt) : '—' }}</dd>
           </div>
-
-          <div>
-            <label class="block text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Puanınız</label>
-            <USelect 
-              v-model="ratingForm" 
-              :options="ratingOptions" 
-              size="lg"
-              @change="updateRating"
-            />
+          <div class="paper px-4 py-3 col-span-2 sm:col-span-1">
+            <dt class="text-[11px] text-muted">Koordinat</dt>
+            <dd class="font-medium text-highlighted mt-0.5 tabular-nums text-xs">{{ place.latitude.toFixed(4) }}, {{ place.longitude.toFixed(4) }}</dd>
           </div>
+        </dl>
+      </section>
 
+      <!-- Sağ: kullanıcının kendi verisi -->
+      <aside class="lg:col-span-2 paper p-6 space-y-7 lg:sticky lg:top-24">
+        <div class="flex items-center gap-3">
+          <span class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
+            <UIcon name="i-heroicons-book-open" class="w-5 h-5" />
+          </span>
           <div>
-            <label class="block text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Gezi Notlarınız</label>
-            <UTextarea 
-              v-model="noteForm" 
-              rows="5" 
-              placeholder="Bu mekan nasıldı? Neler hissettiniz? Bir daha gitseniz ne yaparsınız..." 
-              class="mb-3"
-            />
-            <UButton @click="saveNote" color="primary" block icon="i-heroicons-document-text">Notu Kaydet</UButton>
+            <h2 class="font-display text-xl font-semibold text-highlighted leading-none">Kişisel hafıza</h2>
+            <p class="text-[11px] text-muted mt-1">Sadece bu tarayıcıda saklanır</p>
           </div>
         </div>
-      </UCard>
+
+        <div>
+          <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2.5">Ziyaret durumu</p>
+          <UButton
+            v-if="!visited"
+            color="success"
+            icon="i-heroicons-check-circle"
+            block
+            size="lg"
+            class="rounded-xl"
+            @click="markVisited"
+          >
+            Ziyaret ettim
+          </UButton>
+          <div v-else class="p-4 rounded-xl bg-success/10 text-success flex items-center gap-3 ring-1 ring-success/20">
+            <UIcon name="i-heroicons-check-badge-solid" class="w-6 h-6 shrink-0" />
+            <div>
+              <p class="font-semibold text-sm">Ziyaret edildi</p>
+              <p v-if="place.visitedAt" class="text-xs opacity-80">{{ formatDate(place.visitedAt) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2.5">Puanım</p>
+          <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted ring-1 ring-default">
+            <StarRating :model-value="place.rating" size="lg" @update:model-value="updateRating" />
+            <span class="text-sm text-toned font-medium">{{ ratingLabel }}</span>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2.5">Gezi notum</p>
+          <UTextarea
+            v-model="noteForm"
+            :rows="6"
+            autoresize
+            placeholder="Bu mekan nasıldı? Neler hissettin? Bir daha gitsen ne yapardın…"
+            class="w-full"
+            :ui="{ base: 'rounded-xl font-display text-[15px] leading-relaxed' }"
+          />
+          <div class="flex items-center justify-between mt-3">
+            <span class="text-[11px] text-dimmed">
+              {{ noteDirty ? 'Kaydedilmemiş değişiklik' : (place.note ? 'Kaydedildi' : '') }}
+            </span>
+            <UButton
+              color="primary"
+              icon="i-heroicons-pencil-square"
+              :disabled="!noteDirty"
+              class="rounded-xl"
+              @click="saveNote"
+            >
+              Notu kaydet
+            </UButton>
+          </div>
+        </div>
+      </aside>
     </div>
   </UContainer>
 </template>
 
 <script setup lang="ts">
+import { formatCategory } from '../../utils/category'
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePlacesStore } from '../../stores/places'
@@ -98,45 +152,40 @@ const store = usePlacesStore()
 const toast = useToast()
 
 const placeId = route.params.id as string
-
-const ratingForm = ref<number | string>('')
 const noteForm = ref('')
 
-const ratingOptions = [
-  { label: 'Puan Seçin', value: '' },
-  { label: '1 Yıldız - Kötü', value: 1 },
-  { label: '2 Yıldız - İdare Eder', value: 2 },
-  { label: '3 Yıldız - Ortalama', value: 3 },
-  { label: '4 Yıldız - İyi', value: 4 },
-  { label: '5 Yıldız - Mükemmel', value: 5 }
-]
+const ratingLabels: Record<number, string> = {
+  1: 'Kötü', 2: 'İdare eder', 3: 'Ortalama', 4: 'İyi', 5: 'Mükemmel'
+}
 
 const place = computed(() => {
   if (!store.isInitialized) return null
   return store.getPlaceById(placeId)
 })
 
+const visited = computed(() => place.value?.status === 'visited')
+const ratingLabel = computed(() => place.value?.rating ? ratingLabels[place.value.rating] : 'Henüz puan yok')
+const noteDirty = computed(() => noteForm.value !== (place.value?.note ?? ''))
+
 watch(() => store.isInitialized, (init) => {
-  if (init && place.value) {
-    if (place.value.rating) ratingForm.value = place.value.rating
-    if (place.value.note) noteForm.value = place.value.note
-  }
+  if (init && place.value?.note) noteForm.value = place.value.note
 }, { immediate: true })
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
 
 const markVisited = () => {
   store.markAsVisited(placeId)
-  toast.add({ title: 'Tebrikler!', description: 'Mekan ziyaret edildi olarak işaretlendi.', color: 'green' })
+  toast.add({ title: 'Tebrikler!', description: 'Mekan ziyaret edildi olarak işaretlendi.', color: 'success', icon: 'i-heroicons-check-badge' })
 }
 
-const updateRating = () => {
-  if (ratingForm.value !== '') {
-    store.updateRating(placeId, Number(ratingForm.value))
-    toast.add({ title: 'Puan Kaydedildi', description: 'Mekana verdiğiniz puan güncellendi.', color: 'primary' })
-  }
+const updateRating = (value: number) => {
+  store.updateRating(placeId, value)
+  toast.add({ title: 'Puan kaydedildi', description: `${value}/5 — ${ratingLabels[value]}`, color: 'primary', icon: 'i-heroicons-star' })
 }
 
 const saveNote = () => {
   store.updateNote(placeId, noteForm.value)
-  toast.add({ title: 'Not Kaydedildi', description: 'Kişisel gezi notunuz başarıyla kaydedildi.', color: 'primary' })
+  toast.add({ title: 'Not kaydedildi', description: 'Gezi notun arşivine işlendi.', color: 'primary', icon: 'i-heroicons-pencil-square' })
 }
 </script>

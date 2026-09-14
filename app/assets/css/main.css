@@ -1,2 +1,118 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+
+/* Terracotta: uygulamanın vurgu rengi (primary). Nuxt UI app.config.ts üzerinden bağlanır. */
+@theme static {
+  --color-terracotta-50: #fdf6f1;
+  --color-terracotta-100: #fbeadf;
+  --color-terracotta-200: #f6d2bd;
+  --color-terracotta-300: #efb292;
+  --color-terracotta-400: #e68a62;
+  --color-terracotta-500: #d6673d;
+  --color-terracotta-600: #c04f2b;
+  --color-terracotta-700: #9f3f24;
+  --color-terracotta-800: #813524;
+  --color-terracotta-900: #692e21;
+  --color-terracotta-950: #38150d;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Fraunces', 'Iowan Old Style', 'Georgia', serif;
+}
+
+/* Krem zemin / sıcak koyu mod */
+:root {
+  --ui-bg: #faf6f0;
+  --ui-bg-muted: #f3ede4;
+  --ui-bg-elevated: #ffffff;
+  --ui-bg-accented: #ebe3d7;
+  --ui-border: #e7dfd2;
+  --ui-border-muted: #efe8dd;
+  --ui-border-accented: #d9cebd;
+  --ui-text-dimmed: #a8a29e;
+  --ui-text-muted: #78716c;
+  --ui-text-toned: #57534e;
+  --ui-text: #292524;
+  --ui-text-highlighted: #1c1917;
+  --ui-radius: 0.5rem;
+}
+
+.dark {
+  --ui-bg: #171412;
+  --ui-bg-muted: #1f1b18;
+  --ui-bg-elevated: #232019;
+  --ui-bg-accented: #2e2925;
+  --ui-border: #2e2925;
+  --ui-border-muted: #262220;
+  --ui-border-accented: #3d3631;
+  --ui-text-dimmed: #6b655f;
+  --ui-text-muted: #9a928a;
+  --ui-text-toned: #c2b9b0;
+  --ui-text: #e8e1d8;
+  --ui-text-highlighted: #f8f3ec;
+}
+
+/* Kağıt/defter hissi veren kart */
+.paper {
+  @apply bg-elevated ring-1 ring-default rounded-2xl shadow-[0_1px_2px_rgba(60,40,20,0.05),0_8px_24px_-12px_rgba(60,40,20,0.15)];
+}
+
+.font-display {
+  font-family: var(--font-serif);
+  font-variation-settings: 'opsz' 96, 'SOFT' 30;
+  letter-spacing: -0.01em;
+}
+
+/* Leaflet: tema ile uyumlu harita ve popup */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--ui-bg-muted);
+}
+.dark .leaflet-tile-pane {
+  filter: brightness(0.72) contrast(1.05) saturate(0.55);
+}
+.leaflet-control-zoom a {
+  @apply bg-elevated text-default border-default;
+}
+.leaflet-control-zoom a:hover {
+  @apply bg-muted;
+}
+.leaflet-bar {
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: 0 4px 12px -4px rgba(60, 40, 20, 0.2) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+.leaflet-control-attribution {
+  background: color-mix(in oklab, var(--ui-bg-elevated) 85%, transparent) !important;
+  color: var(--ui-text-muted) !important;
+  font-size: 10px;
+}
+.leaflet-control-attribution a {
+  color: var(--ui-text-toned) !important;
+}
+.leaflet-popup-content-wrapper {
+  background: var(--ui-bg-elevated);
+  color: var(--ui-text);
+  border-radius: 12px;
+  border: 1px solid var(--ui-border);
+  box-shadow: 0 12px 30px -10px rgba(60, 40, 20, 0.3);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+  line-height: 1.4;
+}
+.leaflet-popup-tip {
+  background: var(--ui-bg-elevated);
+}
+.cm-marker {
+  background: transparent;
+  border: none;
+}
+.cm-marker svg {
+  filter: drop-shadow(0 3px 4px rgba(60, 40, 20, 0.35));
+  transition: transform 0.15s ease;
+  transform-origin: bottom center;
+}
+.cm-marker:hover svg {
+  transform: scale(1.1);
+}

@@ -1,38 +1,42 @@
 <template>
-  <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-    <UButton
-      size="sm"
-      :variant="modelValue === 'all' ? 'solid' : 'soft'"
-      :color="modelValue === 'all' ? 'primary' : 'gray'"
-      class="rounded-full px-4 text-xs font-semibold shrink-0"
+  <div class="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none]">
+    <button
+      type="button"
+      :class="chipClass(modelValue === 'all')"
       @click="$emit('update:modelValue', 'all')"
     >
       Tümü
-    </UButton>
+      <span class="ml-1.5 opacity-70 tabular-nums">{{ total }}</span>
+    </button>
 
-    <UButton
+    <button
       v-for="cat in categories"
       :key="cat"
-      size="sm"
-      :variant="modelValue === cat ? 'solid' : 'soft'"
-      :color="modelValue === cat ? 'primary' : 'gray'"
-      class="rounded-full px-4 text-xs font-semibold shrink-0 capitalize"
+      type="button"
+      :class="chipClass(modelValue === cat)"
       @click="$emit('update:modelValue', cat)"
     >
       {{ formatCategory(cat) }}
-    </UButton>
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { formatCategory } from '../utils/category'
+
 defineProps<{
   categories: string[]
   modelValue: string
+  total?: number
 }>()
 
 defineEmits(['update:modelValue'])
 
-const formatCategory = (cat: string) => {
-  return cat.replace(/_/g, ' ')
-}
+const chipClass = (active: boolean) => [
+  'shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ring-1',
+  active
+    ? 'bg-primary text-white ring-primary shadow-sm'
+    : 'bg-elevated text-toned ring-default hover:ring-accented hover:text-highlighted'
+]
+
 </script>
