@@ -58,7 +58,7 @@
             ? 'Farklı bir filtre seç ya da yeni yerler keşfet.'
             : 'Bir şehir ara, ilgini çeken mekanları arşivine ekle; burada birikecekler.' }}
         </p>
-        <UButton to="/" color="primary" icon="i-heroicons-magnifying-glass" class="rounded-xl">
+        <UButton to="/explore" color="primary" icon="i-heroicons-magnifying-glass" class="rounded-xl">
           Mekan keşfet
         </UButton>
       </div>
