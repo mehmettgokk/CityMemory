@@ -14,7 +14,9 @@ export const usePlacesStore = defineStore('places',() => {
         const data = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY)
         if(data){
             try{
-                savedPlaces.value = JSON.parse(data)
+                const parsed: SavedPlace[] = JSON.parse(data)
+                // Eski kayıtlarda id 'node/123' biçimindeydi; rota ile uyumlu hale getir
+                savedPlaces.value = parsed.map(p => ({ ...p, id: p.id.replace('/', '-') }))
             }catch (e){
             console.error('LocalStorage okunurken hata oluştu', e)
             }
