@@ -13,7 +13,7 @@
 import { ref } from 'vue'
 import { useIntersectionObserver } from '@vueuse/core'
 
-// Viewport'a girince bir kez görünür olur (fade + slide). Stil main.css'te.
+
 const props = withDefaults(defineProps<{ delay?: number }>(), { delay: 0 })
 
 const el = ref<HTMLElement | null>(null)

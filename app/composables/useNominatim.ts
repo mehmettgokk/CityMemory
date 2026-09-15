@@ -43,17 +43,46 @@ export const useNominatim = () => {
                 }
             })
 
-          searchResults.value = response.map(transformToPlace)
-        } catch(err){
-          error.value = 'Arama yapılırken bir hata oluştu: Lütfen bağlantınızı kontrol edin'
-          console.error(err)
+            searchResults.value = response.map(transformToPlace)
+        } catch (err) {
+            error.value = 'Arama yapılırken bir hata oluştu: Lütfen bağlantınızı kontrol edin'
+            console.error(err)
         } finally {
             isLoading.value = false
         }
     }
 
+    const formatAddress = (a: Record<string, string | undefined> | undefined, fallback?: string): string | undefined => {
+        if (!a) return fallback
+        const parts: string[] = [
+            [a.road, a.house_number].filter(Boolean).join(' '),
+            a.neighbourhood || a.suburb || a.quarter,
+            a.city_district || a.town || a.village,
+            a.city || a.province || a.state
+        ].filter((v): v is string => Boolean(v))
+        const unique = parts.filter((part, i) =>
+            !parts.some((other, j) => i !== j && other !== part && other.includes(part))
+        )
+        return Array.from(new Set(unique)).join(', ') || fallback
+    }
+
+    // Koordinattan adres bulma (adres etiketi olmayan Overpass mekanları için)
+    const reverse = async (lat: number, lon: number): Promise<string | undefined> => {
+        try {
+            const res = await $fetch<any>('https://nominatim.openstreetmap.org/reverse', {
+                params: { lat, lon, format: 'json', zoom: 18, addressdetails: 1 },
+                headers: { 'Accept-Language': 'tr-TR' }
+            })
+            return formatAddress(res?.address, res?.display_name)
+        } catch (err) {
+            console.warn('Reverse geocode başarısız', err)
+            return undefined
+        }
+    }
+
     return {
         search,
+        reverse,
         searchResults,
         isLoading,
         error

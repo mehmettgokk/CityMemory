@@ -43,7 +43,11 @@
 
           <p class="text-toned mt-4 flex items-start gap-2 text-sm leading-relaxed">
             <UIcon name="i-heroicons-map-pin" class="w-4 h-4 shrink-0 mt-0.5 text-primary" />
-            {{ place.address || 'Adres bilgisi bulunmuyor.' }}
+            <span v-if="place.address">{{ place.address }}</span>
+            <span v-else-if="addressLoading" class="text-muted flex items-center gap-1.5">
+              <UIcon name="i-heroicons-arrow-path" class="w-3.5 h-3.5 animate-spin" /> Adres bulunuyor…
+            </span>
+            <span v-else class="text-muted">Adres bilgisi bulunamadı.</span>
           </p>
         </div>
 
@@ -150,6 +154,8 @@ import { usePlacesStore } from '../../stores/places'
 const route = useRoute()
 const store = usePlacesStore()
 const toast = useToast()
+const { reverse } = useNominatim()
+const addressLoading = ref(false)
 
 const placeId = route.params.id as string
 const noteForm = ref('')
@@ -167,8 +173,17 @@ const visited = computed(() => place.value?.status === 'visited')
 const ratingLabel = computed(() => place.value?.rating ? ratingLabels[place.value.rating] : 'Henüz puan yok')
 const noteDirty = computed(() => noteForm.value !== (place.value?.note ?? ''))
 
-watch(() => store.isInitialized, (init) => {
-  if (init && place.value?.note) noteForm.value = place.value.note
+watch(() => store.isInitialized, async (init) => {
+  if (!init || !place.value) return
+  if (place.value.note) noteForm.value = place.value.note
+
+  // Overpass'tan gelen mekanların çoğunda adres etiketi yok: bir kez bul, kalıcı kaydet
+  if (!place.value.address) {
+    addressLoading.value = true
+    const address = await reverse(place.value.latitude, place.value.longitude)
+    if (address) store.updatePlace(placeId, { address })
+    addressLoading.value = false
+  }
 }, { immediate: true })
 
 const formatDate = (iso: string) =>

@@ -16,7 +16,13 @@
     <dl class="mt-5 space-y-3 text-sm">
       <div class="flex items-start gap-2.5">
         <UIcon name="i-heroicons-map-pin" class="w-4 h-4 text-primary shrink-0 mt-0.5" />
-        <dd class="text-toned leading-relaxed">{{ place.address || 'Adres detayı mevcut değil.' }}</dd>
+        <dd class="text-toned leading-relaxed">
+          <template v-if="place.address">{{ place.address }}</template>
+          <span v-else-if="addressLoading" class="text-muted flex items-center gap-1.5">
+            <UIcon name="i-heroicons-arrow-path" class="w-3.5 h-3.5 animate-spin" /> Adres bulunuyor…
+          </span>
+          <span v-else class="text-muted">Adres bilgisi bulunamadı.</span>
+        </dd>
       </div>
       <div class="flex items-center gap-2.5 text-muted">
         <UIcon name="i-heroicons-globe-alt" class="w-4 h-4 shrink-0" />
@@ -65,6 +71,7 @@ import type { Place } from '../types/place'
 defineProps<{
   place: Place
   isSaved: boolean
+  addressLoading?: boolean
 }>()
 
 defineEmits(['save'])

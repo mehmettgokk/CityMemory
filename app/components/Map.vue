@@ -29,7 +29,7 @@ let map: any = null
 let L: any = null
 let markers = new Map<string, any>()
 
-// Kategori rengine göre SVG iğne — bundler'da kırılan varsayılan Leaflet görsellerine gerek kalmaz
+
 const pinIcon = (place: Place, selected: boolean) => {
   const size = selected ? 42 : 28
   const fill = selected ? '#9f3f24' : GROUP_COLORS[categoryGroup(place.category)]

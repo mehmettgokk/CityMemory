@@ -1,5 +1,3 @@
-// OSM etiket değerlerini kullanıcıya gösterilecek Türkçe etikete çevirir.
-// Veri modelinde ham OSM değeri korunur; bu yalnızca görüntüleme içindir.
 const LABELS: Record<string, string> = {
   museum: 'Müze',
   gallery: 'Galeri',

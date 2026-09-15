@@ -48,13 +48,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { usePlacesStore } from '../stores/places'
 
 const store = usePlacesStore()
+const toast = useToast()
+
+// localStorage okunamadıysa (bozuk veri, kapalı depolama vb.) kullanıcıya haber ver
+watch(() => store.loadError, (msg) => {
+  if (msg) {
+    toast.add({ title: 'Arşiv yüklenemedi', description: msg, color: 'warning', icon: 'i-heroicons-exclamation-triangle' })
+  }
+}, { immediate: true })
 
 const nav = computed(() => [
-  { to: '/', label: 'Keşfet', icon: 'i-heroicons-magnifying-glass' },
+  { to: '/explore', label: 'Keşfet', icon: 'i-heroicons-magnifying-glass' },
   {
     to: '/saved',
     label: 'Arşivim',

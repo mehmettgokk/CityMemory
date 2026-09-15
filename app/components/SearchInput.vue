@@ -107,8 +107,6 @@ const runSearch = async () => {
   }
 }
 
-// Nominatim kullanım kuralları: her tuşta değil, 500ms debounce ile istek at.
-// v-model'i izliyoruz; @input olayı model güncellenmeden önce tetiklendiği için eski değeri görürdü.
 const debouncedSearch = useDebounceFn(runSearch, 500)
 
 watch(query, (val, old) => {

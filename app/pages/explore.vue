@@ -50,14 +50,14 @@
             >
               <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 shrink-0" />
               <span class="truncate">Mekanlar yüklenemedi</span>
-              <button type="button" class="font-semibold underline shrink-0" @click="loadPlaces">Tekrar dene</button>
+              <button type="button" class="font-semibold underline shrink-0" @click="loadPlaces(true)">Tekrar dene</button>
             </div>
             <div
               v-else-if="overpass.isLoading.value"
               class="flex items-center gap-2 text-xs font-medium bg-elevated/95 backdrop-blur ring-1 ring-default text-toned px-3 py-1.5 rounded-full shadow-sm"
             >
               <UIcon name="i-heroicons-arrow-path" class="w-3.5 h-3.5 animate-spin text-primary" />
-              Mekanlar yükleniyor…
+              {{ overpass.isSlow.value ? 'Sunucular yoğun, alternatif deneniyor…' : 'Mekanlar yükleniyor…' }}
             </div>
             <div
               v-else-if="mapView && mapView.zoom < MIN_POI_ZOOM"
@@ -128,7 +128,6 @@ import { useOverpass } from '../composables/useOverpass'
 import { formatCategory, isAreaCategory } from '../utils/category'
 import type { MapView } from '../components/Map.vue'
 
-// Bu zoom seviyesinin altında Overpass sorgusu atılmaz (çok geniş alan / çok fazla nokta)
 const MIN_POI_ZOOM = 13
 
 const store = usePlacesStore()
@@ -138,13 +137,11 @@ const { reverse } = useNominatim()
 const addressLoading = ref(false)
 
 const selectedPlace = ref<Place | null>(null)
-// Aramadan gelen spesifik mekanlar (şehir/ilçe gibi alan sonuçları buraya eklenmez)
 const searchedPlaces = ref<Place[]>([])
 const selectedCategory = ref<string>('all')
 const mapCenter = ref<{ lat: number, lng: number, zoom?: number } | undefined>(undefined)
 const mapView = ref<MapView | null>(null)
 
-// Haritada gösterilecek tüm mekanlar: Overpass sonuçları + aranan mekanlar (tekilleştirilmiş)
 const currentPlaces = computed<Place[]>(() => {
   const seen = new Set<string>()
   const merged: Place[] = []
@@ -157,14 +154,13 @@ const currentPlaces = computed<Place[]>(() => {
   return merged
 })
 
-const loadPlaces = () => {
+const loadPlaces = (force = false) => {
   const v = mapView.value
   if (!v || v.zoom < MIN_POI_ZOOM) return
-  overpass.fetchPlaces(v)
+  overpass.fetchPlaces(v, { force })
 }
 
-// Harita her hareket ettiğinde değil, kullanıcı durduğunda sorgu at (Overpass kullanım kuralları)
-const debouncedLoad = useDebounceFn(loadPlaces, 700)
+const debouncedLoad = useDebounceFn(() => loadPlaces(), 700)
 
 const handleViewChange = (view: MapView) => {
   mapView.value = view
@@ -197,7 +193,6 @@ const visiblePlaces = computed(() => {
   return list
 })
 
-// Seçili kategori yeni veri setinde yoksa filtreyi sıfırla
 watch(() => uniqueCategories.value, (cats) => {
   if (selectedCategory.value !== 'all' && !cats.includes(selectedCategory.value)) {
     selectedCategory.value = 'all'
@@ -225,7 +220,6 @@ const handleMarkerClick = (place: Place) => {
   selectedPlace.value = place
 }
 
-// Seçilen mekanın adresi yoksa koordinattan bul; sonuç aynı mekan hâlâ seçiliyse yaz
 watch(selectedPlace, async (place) => {
   if (!place || place.address) return
   addressLoading.value = true

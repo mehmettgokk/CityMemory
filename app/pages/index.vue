@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- ================= HERO ================= -->
     <section ref="heroEl" class="relative overflow-hidden min-h-[calc(100vh-4rem)] flex items-center">
       <!-- Arka plan: şehir silueti (yavaş parallax) -->
       <div

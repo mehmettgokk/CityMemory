@@ -8,34 +8,42 @@ export interface BBox {
   east: number
 }
 
-// Kullanıcıya "ilgi çekici" gelmeyecek etiketler (konaklama, bilgi tabelası vb.)
+
 const EXCLUDED = new Set(['hostel', 'guest_house', 'apartment', 'motel', 'chalet', 'camp_pitch', 'caravan_site', 'information', 'yes'])
 
-// Ana sunucu yoğunken (504) sırayla yedek sunucular denenir
+
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter'
 ]
+const HEDGE_DELAY_MS = 2500
+const REQUEST_TIMEOUT_MS = 25000
+const SLOW_NOTICE_MS = 6000
+
+
+const BBOX_PADDING = 0.35
 
 export const useOverpass = () => {
   const places = ref<Place[]>([])
   const isLoading = ref(false)
+  const isSlow = ref(false)
   const error = ref<string | null>(null)
 
   let controller: AbortController | null = null
+  let fetchedBBox: BBox | null = null
 
   const buildQuery = ({ south, west, north, east }: BBox) => {
-    const bbox = `${south},${west},${north},${east}`
-    // nw (node+way): relation'ları dışarıda bırakmak sorguyu belirgin biçimde hafifletir
-    return `[out:json][timeout:20][maxsize:16777216];
+    const bbox = `${south.toFixed(5)},${west.toFixed(5)},${north.toFixed(5)},${east.toFixed(5)}`
+    return `[out:json][timeout:15][maxsize:16777216];
 (
   nw["tourism"]["name"](${bbox});
   nw["historic"]["name"](${bbox});
   nw["amenity"~"^(cafe|restaurant|bar|pub|theatre|cinema|library|place_of_worship|marketplace|arts_centre|community_centre)$"]["name"](${bbox});
   nw["leisure"~"^(park|garden|nature_reserve|beach_resort)$"]["name"](${bbox});
 );
-out center 250;`
+out center 300;`
   }
 
   const buildAddress = (tags: Record<string, string>) => {
@@ -48,14 +56,12 @@ out center 250;`
     return parts.length ? parts.join(', ') : undefined
   }
 
-  // Overpass elemanını uygulamanın Place modeline dönüştürür
   const transformToPlace = (el: any): Place | null => {
     const tags: Record<string, string> = el.tags ?? {}
     const lat = el.lat ?? el.center?.lat
     const lon = el.lon ?? el.center?.lon
     if (lat == null || lon == null || !tags.name) return null
 
-    // Öncelik: tourism > historic > amenity > leisure; historic=yes gibi anlamsız değerler atlanır
     const candidates = [tags.tourism, tags.historic, tags.amenity, tags.leisure].filter(v => v && !EXCLUDED.has(v))
     let category = candidates[0]
     if (!category) {
@@ -66,7 +72,6 @@ out center 250;`
     if (category === 'place_of_worship' && tags.religion === 'christian') category = 'church'
 
     return {
-      // '/' kullanılmaz: /place/[id] rotasında ayırıcı olarak algılanırdı
       id: `${el.type}-${el.id}`,
       name: tags.name,
       category,
@@ -76,42 +81,99 @@ out center 250;`
     }
   }
 
-  const fetchPlaces = async (bbox: BBox) => {
+  const padBBox = (b: BBox): BBox => {
+    const dLat = (b.north - b.south) * BBOX_PADDING
+    const dLng = (b.east - b.west) * BBOX_PADDING
+    return { south: b.south - dLat, north: b.north + dLat, west: b.west - dLng, east: b.east + dLng }
+  }
+
+  const contains = (outer: BBox, inner: BBox) =>
+    inner.south >= outer.south && inner.north <= outer.north && inner.west >= outer.west && inner.east <= outer.east
+
+  const requestFrom = (url: string, body: URLSearchParams, signal: AbortSignal) =>
+    $fetch<{ elements: any[] }>(url, { method: 'POST', body, signal, timeout: REQUEST_TIMEOUT_MS })
+
+
+  const hedgedRequest = (body: URLSearchParams, parent: AbortSignal) =>
+    new Promise<{ elements: any[] }>((resolve, reject) => {
+      const local = new AbortController()
+      parent.addEventListener('abort', () => local.abort(), { once: true })
+
+      let nextIndex = 0
+      let pending = 0
+      let lastError: any = null
+      let timer: ReturnType<typeof setTimeout> | undefined
+
+      const settleIfDone = () => {
+        if (pending === 0 && nextIndex >= OVERPASS_ENDPOINTS.length && !local.signal.aborted) {
+          reject(lastError ?? new Error('Overpass yanıt vermedi'))
+        }
+      }
+
+      const startNext = () => {
+        clearTimeout(timer)
+        if (local.signal.aborted) return
+        if (nextIndex >= OVERPASS_ENDPOINTS.length) return settleIfDone()
+
+        const url = OVERPASS_ENDPOINTS[nextIndex++]!
+        pending++
+        requestFrom(url, body, local.signal)
+          .then((res) => {
+            local.abort()
+            resolve(res)
+          })
+          .catch((err) => {
+            if (local.signal.aborted) return
+            lastError = err
+            console.warn(`Overpass başarısız (${url})`, err?.status ?? err?.message)
+            pending--
+            startNext() 
+          })
+          .then(() => {
+
+          })
+
+        timer = setTimeout(startNext, HEDGE_DELAY_MS)
+      }
+
+      local.signal.addEventListener('abort', () => clearTimeout(timer), { once: true })
+      startNext()
+    })
+
+  const fetchPlaces = async (view: BBox, { force = false } = {}) => {
+    if (!force && fetchedBBox && contains(fetchedBBox, view)) return
+
     controller?.abort()
     const ctrl = new AbortController()
     controller = ctrl
-    isLoading.value = true
-    error.value = null
 
-    const body = new URLSearchParams({ data: buildQuery(bbox) })
-    let lastError: any = null
+    isLoading.value = true
+    isSlow.value = false
+    error.value = null
+    const slowTimer = setTimeout(() => { isSlow.value = true }, SLOW_NOTICE_MS)
+
+    const target = padBBox(view)
+    const body = new URLSearchParams({ data: buildQuery(target) })
 
     try {
-      for (const url of OVERPASS_ENDPOINTS) {
-        if (ctrl.signal.aborted) return
-        try {
-          const response = await $fetch<{ elements: any[] }>(url, {
-            method: 'POST',
-            body,
-            signal: ctrl.signal,
-            timeout: 30000
-          })
-          places.value = response.elements
-            .map(transformToPlace)
-            .filter((p): p is Place => p !== null)
-          return
-        } catch (err: any) {
-          if (err?.name === 'AbortError' || ctrl.signal.aborted) return
-          lastError = err
-          console.warn(`Overpass başarısız (${url}), sıradaki sunucu deneniyor`, err?.status ?? err?.message)
-        }
-      }
-      error.value = 'Mekanlar yüklenemedi. Overpass servisi şu an yoğun; biraz sonra tekrar deneyin.'
-      console.error(lastError)
+      const response = await hedgedRequest(body, ctrl.signal)
+      if (ctrl.signal.aborted) return
+      places.value = response.elements
+        .map(transformToPlace)
+        .filter((p): p is Place => p !== null)
+      fetchedBBox = target
+    } catch (err: any) {
+      if (ctrl.signal.aborted) return
+      error.value = 'Mekanlar yüklenemedi. Overpass sunucuları şu an yoğun; biraz sonra tekrar deneyin.'
+      console.error(err)
     } finally {
-      if (!ctrl.signal.aborted) isLoading.value = false
+      clearTimeout(slowTimer)
+      if (!ctrl.signal.aborted) {
+        isLoading.value = false
+        isSlow.value = false
+      }
     }
   }
 
-  return { places, isLoading, error, fetchPlaces }
+  return { places, isLoading, isSlow, error, fetchPlaces }
 }
