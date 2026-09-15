@@ -1,75 +1,91 @@
-# Nuxt Minimal Starter
+# Şehir Hafızası
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Bir şehirdeki ilgi çekici yerleri keşfedip kendi gezi listeni oluşturabildiği bir web uygulaması.
+Kaydettiğin yerler, verdiğin puanlar ve yazdığın notlar tarayıcının localStorage'ında tutulur; hesap veya backend gerekmez.
 
-## Setup
+## Özellikler
 
-Make sure to install dependencies:
+- Şehir, ilçe veya adres arama (Nominatim)
+- Harita üzerinde bölgedeki mekanları görme (Overpass, gerçek OSM etiketleri)
+- Mekanları kategoriye göre filtreleme
+- Mekan kaydetme, ziyaret edildi işaretleme, puan verme, not ekleme, listeden kaldırma
+- Kaydedilenler sayfasında planlanan / ziyaret edilen filtresi
+- Mekan detay sayfası
+- Açık / koyu tema
+
+## Kullanılan teknolojiler
+
+- Framework: Nuxt 4 (Vue 3, TypeScript)
+- UI: Nuxt UI, Tailwind CSS
+- State: Pinia
+- Harita: Leaflet, OpenStreetMap
+- Arama: Nominatim API
+- Mekan verisi: Overpass API
+- Depolama: localStorage
+
+## Kurulum
 
 ```bash
-# npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
-
-Build the application for production:
+Uygulama `http://localhost:3000` adresinde açılır.
 
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+npm run build 
+npx nuxt typecheck  
 ```
 
-Locally preview production build:
+## Proje yapısı
 
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+```
+app/
+├── pages/
+│   ├── index.vue          # landing
+│   ├── explore.vue        # arama + harita
+│   ├── saved.vue          # kaydedilen mekanlar
+│   └── place/[id].vue     # mekan detayı
+├── components/
+│   ├── Map.vue
+│   ├── SearchInput.vue
+│   ├── CategoryFilter.vue
+│   ├── PlaceDetails.vue
+│   ├── PlaceCard.vue
+│   ├── StarRating.vue
+│   ├── Reveal.vue
+│   └── ThemeToggle.vue
+├── composables/
+│   ├── useNominatim.ts    # arama ve adres bulma
+│   └── useOverpass.ts     # bölgedeki mekanlar
+├── stores/places.ts       # Pinia store, localStorage
+├── types/place.ts
+├── utils/category.ts      # OSM etiketi → Türkçe etiket
+├── layouts/default.vue
+└── assets/css/main.css
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+API'den gelen veri doğrudan component'lerde kullanılmaz; composable'lar veriyi `Place` modeline çevirir.
+localStorage işlemleri yalnızca store içinde ve client tarafında yapılır.
+
+## Veri modeli
+
+```ts
+interface Place {
+  id: string
+  name: string
+  category: string
+  latitude: number
+  longitude: number
+  address?: string
+}
+
+interface SavedPlace extends Place {
+  status: 'planned' | 'visited'
+  rating?: number
+  note?: string
+  savedAt: string
+  visitedAt?: string
+}
+```
+
